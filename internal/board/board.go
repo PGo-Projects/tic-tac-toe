@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/PGo-Projects/tic-tac-toe/internal/player"
 	term "github.com/buger/goterm"
 )
 
@@ -29,7 +28,14 @@ func (b *Board) Put(x int, y int, token string) error {
 }
 
 func (b *Board) IsOver() bool {
-	return false
+	return b.board[0][0] != "" && b.board[0][0] == b.board[0][1] && b.board[0][0] == b.board[0][2] ||
+		b.board[1][0] != "" && b.board[1][0] == b.board[1][1] && b.board[1][0] == b.board[1][2] ||
+		b.board[2][0] != "" && b.board[2][0] == b.board[2][1] && b.board[2][0] == b.board[2][2] ||
+		b.board[0][0] != "" && b.board[0][0] == b.board[1][0] && b.board[0][0] == b.board[2][0] ||
+		b.board[0][1] != "" && b.board[0][1] == b.board[1][1] && b.board[0][1] == b.board[2][1] ||
+		b.board[0][2] != "" && b.board[0][2] == b.board[1][2] && b.board[0][2] == b.board[2][2] ||
+		b.board[0][0] != "" && b.board[0][0] == b.board[1][1] && b.board[0][0] == b.board[2][2] ||
+		b.board[2][0] != "" && b.board[2][0] == b.board[1][1] && b.board[2][0] == b.board[0][2]
 }
 
 func (b *Board) Print() {
@@ -46,9 +52,9 @@ func (b *Board) String() string {
 		for colIndex, token := range row {
 			if token == "" {
 				strBoard += "   "
-			} else if token == player.YOUR_TOKEN {
+			} else if token == "X" {
 				strBoard += fmt.Sprintf(" %s ", term.Color(token, term.BLUE))
-			} else if token == player.OPPONENT_TOKEN {
+			} else if token == "O" {
 				strBoard += fmt.Sprintf(" %s ", term.Color(token, term.RED))
 			}
 			if colIndex < 2 {

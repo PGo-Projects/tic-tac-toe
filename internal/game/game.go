@@ -1,11 +1,13 @@
 package game
 
 import (
-	"fmt"
-	"strconv"
+	"math/rand"
+	"regexp"
+	"time"
 
 	"github.com/PGo-Projects/tic-tac-toe/internal/board"
 	"github.com/PGo-Projects/tic-tac-toe/internal/player"
+	"github.com/PGo-Projects/tic-tac-toe/internal/userio"
 	term "github.com/buger/goterm"
 )
 
@@ -23,53 +25,58 @@ func (g *Game) Start() {
 	term.Clear()
 	term.MoveCursor(1, 1)
 	PrintInstructions()
-	firstPlayerToken := promptUser(nil, "What token should the first player use? ")
-	g.players = []player.Player{player.New("human", firstPlayerToken), player.New("human", getOtherToken(firstPlayerToken))}
-	g.turn = 0
 
-	g.DrawBoard()
-	g.Play()
+	playAgainstAI := userio.PromptUser("", "Want to play against an AI? ", "([yY][eE][sS])|([nN][oO])", "Please answer yes or no.")
+	if match, err := regexp.MatchString("[yY][eE][sS]", playAgainstAI); err != nil && match {
+		playerGoesFirst := userio.PromptUser("", "Do you want to go first? ", "([yY][eE][sS])|([nN][oO])", "Please answer yes or no.")
+		if match, err := regexp.MatchString("[yY][eE][sS]", playerGoesFirst); err != nil && match {
+			playerTokenErrMsg := "Token must be a X or a O, please try again!"
+			playerToken := userio.PromptUser("", "What token should the first player use? ", "X|O", playerTokenErrMsg)
+			g.players = []player.Player{player.New("human", playerToken), player.New("ai", getOtherToken(playerToken))}
+		} else {
+			rand.Seed(time.Now().UnixNano())
+			if rand.Intn(100) < 50 {
+				g.players = []player.Player{player.New("ai", "X"), player.New("human", getOtherToken("X"))}
+			} else {
+				g.players = []player.Player{player.New("ai", "O"), player.New("human", getOtherToken("O"))}
+			}
+		}
+	} else {
+		firstPlayerTokenErrMsg := "Token must be a X or a O, please try again!"
+		firstPlayerToken := userio.PromptUser("", "What token should the first player use? ", "X|O", firstPlayerTokenErrMsg)
+		g.players = []player.Player{player.New("human", firstPlayerToken), player.New("human", getOtherToken(firstPlayerToken))}
+	}
+
+	g.turn = 0
+	g.drawBoard()
+	g.play()
 }
 
-func (g *Game) DrawBoard() {
+func (g *Game) drawBoard() {
 	g.board.Print()
 }
 
-func (g *Game) Play() {
+func (g *Game) play() {
 	if g.board.IsOver() {
 		term.Println("Game Over!")
 		term.Flush()
+		return
 	}
 
-	playErr := error(nil)
-	playerFirstTry := true
-	for playErr != nil || playerFirstTry {
-		playerFirstTry = false
-		row, rowErr := strconv.Atoi(promptUser(g.getCurrentPlayer(), "Which row do you want to put your token? "))
-		col, colErr := strconv.Atoi(promptUser(g.getCurrentPlayer(), "Which col do you want to put your token? "))
-		if rowErr != nil {
-			playErr = rowErr
-		}
-		if colErr != nil {
-			playErr = colErr
-		}
-
-		playErr = g.playMove(row, col)
+	playErr := g.getCurrentPlayer().PlayMove(g.board)
+	g.drawBoard()
+	if playErr != nil {
+		term.Println(playErr)
+		term.Flush()
+	} else {
+		g.nextTurn()
 	}
-	g.nextTurn()
-	g.Play()
+
+	g.play()
 }
 
 func (g *Game) getCurrentPlayer() player.Player {
 	return g.players[g.turn]
-}
-
-func (g *Game) playMove(row int, col int) error {
-	err := g.board.Put(row-1, col-1, g.getCurrentPlayer().GetToken())
-	if err == nil {
-		g.board.Print()
-	}
-	return err
 }
 
 func (g *Game) nextTurn() {
@@ -79,20 +86,6 @@ func (g *Game) nextTurn() {
 func PrintInstructions() {
 	term.Println("This is a game of tic-tac-toe!")
 	term.Flush()
-}
-
-func promptUser(p player.Player, prompt string) string {
-	if p != nil {
-		term.Printf("For player with token %s:", p.GetToken())
-		term.Println("")
-	}
-	term.Println(prompt)
-	term.Flush()
-	userResponse := ""
-	for userResponse == "" {
-		fmt.Scanln(&userResponse)
-	}
-	return userResponse
 }
 
 func getOtherToken(chosenToken string) string {

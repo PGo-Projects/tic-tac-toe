@@ -1,19 +1,25 @@
 package player
 
-import "github.com/PGo-Projects/tic-tac-toe/internal/player/human"
+import (
+	"github.com/PGo-Projects/tic-tac-toe/internal/board"
+	"github.com/PGo-Projects/tic-tac-toe/internal/player/ai"
+	"github.com/PGo-Projects/tic-tac-toe/internal/player/human"
+)
 
-var (
-	YOUR_TOKEN     string = "X"
-	OPPONENT_TOKEN string = "O"
+const (
+	AI    = ai.TYPE
+	HUMAN = human.TYPE
 )
 
 type Player interface {
 	GetToken() string
+	GetType() string
+	PlayMove(*board.Board) error
 }
 
 func New(playerType string, token string) Player {
-	if playerType == "human" {
+	if playerType == HUMAN {
 		return human.New(token)
 	}
-	return nil
+	return ai.New(token)
 }
