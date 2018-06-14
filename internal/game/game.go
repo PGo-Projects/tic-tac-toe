@@ -8,6 +8,7 @@ import (
 	"github.com/PGo-Projects/tic-tac-toe/internal/board"
 	"github.com/PGo-Projects/tic-tac-toe/internal/player"
 	"github.com/PGo-Projects/tic-tac-toe/internal/userio"
+	"github.com/PGo-Projects/tic-tac-toe/internal/utils"
 	term "github.com/buger/goterm"
 )
 
@@ -26,27 +27,7 @@ func (g *Game) Start() {
 	term.MoveCursor(1, 1)
 	PrintInstructions()
 
-	playAgainstAI := userio.PromptUser("", "Want to play against an AI? ", "([yY][eE][sS])|([nN][oO])", "Please answer yes or no.")
-	if match, err := regexp.MatchString("[yY][eE][sS]", playAgainstAI); err != nil && match {
-		playerGoesFirst := userio.PromptUser("", "Do you want to go first? ", "([yY][eE][sS])|([nN][oO])", "Please answer yes or no.")
-		if match, err := regexp.MatchString("[yY][eE][sS]", playerGoesFirst); err != nil && match {
-			playerTokenErrMsg := "Token must be a X or a O, please try again!"
-			playerToken := userio.PromptUser("", "What token should the first player use? ", "X|O", playerTokenErrMsg)
-			g.players = []player.Player{player.New("human", playerToken), player.New("ai", getOtherToken(playerToken))}
-		} else {
-			rand.Seed(time.Now().UnixNano())
-			if rand.Intn(100) < 50 {
-				g.players = []player.Player{player.New("ai", "X"), player.New("human", getOtherToken("X"))}
-			} else {
-				g.players = []player.Player{player.New("ai", "O"), player.New("human", getOtherToken("O"))}
-			}
-		}
-	} else {
-		firstPlayerTokenErrMsg := "Token must be a X or a O, please try again!"
-		firstPlayerToken := userio.PromptUser("", "What token should the first player use? ", "X|O", firstPlayerTokenErrMsg)
-		g.players = []player.Player{player.New("human", firstPlayerToken), player.New("human", getOtherToken(firstPlayerToken))}
-	}
-
+	g.determinePlayers()
 	g.turn = 0
 	g.drawBoard()
 	g.play()
@@ -57,7 +38,7 @@ func (g *Game) drawBoard() {
 }
 
 func (g *Game) play() {
-	if g.board.IsOver() {
+	if g.board.IsOver() || g.board.SomeoneWon() {
 		term.Println("Game Over!")
 		term.Flush()
 		return
@@ -83,15 +64,54 @@ func (g *Game) nextTurn() {
 	g.turn = 1 - g.turn
 }
 
+func (g *Game) determinePlayers() {
+	userWishToPlayAgainstAI := userio.PromptUser(&userio.PromptUserInfo{
+		AddressMsg:                 "",
+		PromptMsg:                  "Want to play against an AI?",
+		UserResponseIsValidPattern: "([yY][eE][sS])|([nN][oO])",
+		ErrMsg: "Please answer yes or no.",
+	})
+	if match, err := regexp.MatchString("[yY][eE][sS]", userWishToPlayAgainstAI); err == nil && match {
+		playerWishToGoesFirst := userio.PromptUser(&userio.PromptUserInfo{
+			AddressMsg:                 "",
+			PromptMsg:                  "Do you want to go first?",
+			UserResponseIsValidPattern: "([yY][eE][sS])|([nN][oO])",
+			ErrMsg: "Please answer yes or no.",
+		})
+		if match, err := regexp.MatchString("[yY][eE][sS]", playerWishToGoesFirst); err == nil && match {
+			playerToken := userio.PromptUser(&userio.PromptUserInfo{
+				AddressMsg:                 "",
+				PromptMsg:                  "What token do you want: X or O?",
+				UserResponseIsValidPattern: "X|O",
+				ErrMsg: "Token must be a X or a O, please try again!",
+			})
+			g.players = []player.Player{
+				player.New(player.HUMAN, playerToken),
+				player.New(player.AI, utils.GetOtherToken(playerToken)),
+			}
+		} else {
+			rand.Seed(time.Now().UnixNano())
+			if rand.Intn(100) < 50 {
+				g.players = []player.Player{player.New(player.AI, "X"), player.New(player.HUMAN, utils.GetOtherToken("X"))}
+			} else {
+				g.players = []player.Player{player.New(player.AI, "O"), player.New(player.HUMAN, utils.GetOtherToken("O"))}
+			}
+		}
+	} else {
+		firstPlayerToken := userio.PromptUser(&userio.PromptUserInfo{
+			AddressMsg:                 "",
+			PromptMsg:                  "What token should the first player use?",
+			UserResponseIsValidPattern: "X|O",
+			ErrMsg: "Token must be a X or a O, please try again!",
+		})
+		g.players = []player.Player{
+			player.New(player.HUMAN, firstPlayerToken),
+			player.New(player.HUMAN, utils.GetOtherToken(firstPlayerToken)),
+		}
+	}
+}
+
 func PrintInstructions() {
 	term.Println("This is a game of tic-tac-toe!")
 	term.Flush()
-}
-
-func getOtherToken(chosenToken string) string {
-	if chosenToken == "X" {
-		return "O"
-	} else {
-		return "X"
-	}
 }

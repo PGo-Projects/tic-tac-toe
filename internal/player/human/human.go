@@ -8,7 +8,10 @@ import (
 	"github.com/PGo-Projects/tic-tac-toe/internal/userio"
 )
 
-const TYPE = "human"
+const (
+	TYPE                    = "human"
+	MOVE_VALIDATION_PATTERN = "[123]"
+)
 
 type Human struct {
 	token string
@@ -27,8 +30,24 @@ func (h *Human) GetType() string {
 }
 
 func (h *Human) PlayMove(b *board.Board) error {
-	row, rowErr := strconv.Atoi(userio.PromptUser(fmt.Sprintf("To the player with token %s:", h.token), "Which row do you want to put your token? ", "[123]", "Not a valid row, please try again!"))
-	col, colErr := strconv.Atoi(userio.PromptUser(fmt.Sprintf("To the player with token %s:", h.token), "Which column do you want to put your token? ", "[123]", "Not a valid column, please try again!"))
+	addressMsg := fmt.Sprintf("To the player with token %s:", h.token)
+	rowPrompt := "Which row do you want to put your token? "
+	rowErrMsg := "Not a valid row, please try again!"
+	colPrompt := "Which column do you want to put your token?"
+	colErrMsg := "Not a valid column, please try again!"
+
+	row, rowErr := strconv.Atoi(userio.PromptUser(&userio.PromptUserInfo{
+		AddressMsg:                 addressMsg,
+		PromptMsg:                  rowPrompt,
+		UserResponseIsValidPattern: MOVE_VALIDATION_PATTERN,
+		ErrMsg: rowErrMsg,
+	}))
+	col, colErr := strconv.Atoi(userio.PromptUser(&userio.PromptUserInfo{
+		AddressMsg:                 addressMsg,
+		PromptMsg:                  colPrompt,
+		UserResponseIsValidPattern: MOVE_VALIDATION_PATTERN,
+		ErrMsg: colErrMsg,
+	}))
 	if rowErr == nil && colErr == nil {
 		playErr := b.Put(row-1, col-1, h.token)
 		return playErr
